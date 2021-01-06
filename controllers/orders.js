@@ -1,7 +1,7 @@
 const Orders = require("../models/orders")
 const Goods = require("../models/goods")
+const { check, validationResult } = require('express-validator')
 const ordersRouter = require("express").Router();
-
 
 ordersRouter.get("/", async (request, response) => {
   const goods = await Orders.find({});
@@ -17,32 +17,54 @@ async function decriaseAmountOfGoods(arr) {
   }
 }
 
-ordersRouter.post("/", async (request, response, next) => {
-  const body = request.body;
-  const goodsFromOrders = body.order.map(el => [el.id, el.amountOfGoods])
+ordersRouter.post("/",
+  [
+    check('order', 'You should fill all field').exists(),
+    check('country', 'You should fill all field').exists(),
+    check('firstName', 'You should fill all field').exists(),
+    check('secondName', 'You should fill all field').exists(),
+    check('address', 'You should fill all field').exists(),
+    check('city', 'You should fill all field').exists(),
+    check('zip', 'You should fill all field').exists(),
+    check('phone')
+      .trim()
+      .isNumeric().withMessage('Phone number must be numeric')
+      .bail()
+      .isLength({ min: 10, max: 13 }).withMessage('Phone number must be 10 digits long')
+      .bail()],
 
-  const newItem = new Orders({
-    order: body.order,
-    country: body.country,
-    firstName: body.firstName,
-    secondName: body.secondName,
-    address: body.address,
-    city: body.city,
-    state: body.state,
-    zip: body.zip,
-    phone: body.phone,
-    imagePath: body.imagePath,
-    date: new Date(),
-  });
-  try {
-    const savedNewItem = await newItem.save();
-    decriaseAmountOfGoods(goodsFromOrders)
-    response.json(savedNewItem.toJSON());
-  } catch (exception) {
-    next(exception);
-  }
-}
-);
+  async (request, response) => {
+
+    const errors = validationResult(request)
+
+    if (!errors.isEmpty()) {
+      return response.status(400).json({ errors: errors.array(), message: 'Wrong registration data' })
+    }
+
+    try {
+      const { order, country, firstName, secondName, address, city, state, zip, phone } = request.body
+      const goodsFromOrders = order.map(el => [el.id, el.amountOfGoods])
+
+      const newOrder = new Orders({
+        order,
+        country,
+        firstName,
+        secondName,
+        address,
+        city,
+        state,
+        zip,
+        phone,
+        date: new Date(),
+      });
+
+      await newOrder.save();
+      decriaseAmountOfGoods(goodsFromOrders)
+      response.status(201).json({ message: 'New order created', order: newOrder.toJSON() })
+    } catch (e) {
+      response.status(500).json({ message: 'Something goes wrong, try again' })
+    }
+  })
 
 module.exports = ordersRouter;
 

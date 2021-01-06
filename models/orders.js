@@ -6,22 +6,16 @@ mongoose.set("useCreateIndex", true);
 
 const ordersSchema = new mongoose.Schema({
   order: [{ id: String, date: Date, nameOfGoods: String, amountOfGoods: Number, priceOfGoods: Number, imagePath: String }],
-  country: { type: String, required: [true, 'Why no country?'] },
-  firstName: { type: String, required: [true, 'We need your name'] },
-  secondName: { type: String, required: [true, 'We need your name'] },
-  address: { type: String, required: [true, 'We need your address'] },
-  city: { type: String, required: [true, 'We need your city'] },
+  country: { type: String, required: true },
+  firstName: { type: String, required: true },
+  secondName: { type: String, required: true },
+  address: { type: String, required: true },
+  city: { type: String, required: true },
   state: String,
-  zip: { type: String, required: [true, 'We need your zip code'] },
+  zip: { type: String, required: true },
   phone: {
     type: String,
-    validate: {
-      validator: function (v) {
-        return /\d{3}-\d{3}-\d{4}/.test(v);
-      },
-      message: props => `${props.value} is not a valid phone number!`
-    },
-    required: [true, 'User phone number required']
+    required: true
   },
   date: Date,
 });

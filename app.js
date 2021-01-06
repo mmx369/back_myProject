@@ -12,13 +12,13 @@ const imgRouter = require('./controllers/img')
 const orderRouter = require('./controllers/orders')
 const blogsRouter = require('./controllers/blog')
 
-
 logger.info("connecting to", config.MONGODB_URI);
 
 mongoose
   .connect(config.MONGODB_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
+    useCreateIndex: true
   })
   .then(() => {
     logger.info("connected to MongoDB");
@@ -40,10 +40,7 @@ app.use("/api/img", imgRouter);
 app.use("/api/orders", orderRouter);
 app.use("/api/blogs", blogsRouter);
 
-
-
 app.use(middleware.unknownEndpoint);
 app.use(middleware.errorHandler);
-
 
 module.exports = app;

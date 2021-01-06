@@ -1,36 +1,51 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
+const { check, validationResult } = require('express-validator')
 const loginRouter = require("express").Router();
 const User = require("../models/user");
 
-loginRouter.post("/", async (request, response) => {
-  const body = request.body;
-  console.log(111111111, body);
 
-  const user = await User.findOne({ username: body.username });
-  console.log(2222222, user);
+// /api/login/
 
-  const passwordCorrect =
-    user === null
-      ? false
-      : await bcrypt.compare(body.password, user.passwordHash);
+loginRouter.post("/",
+  [
+    check('username', 'Username not found').exists(),
+    check('password', 'Enter password').exists()
+  ],
 
-  if (!(user && passwordCorrect)) {
-    return response.status(401).json({
-      error: "invalid username or password",
-    });
-  }
+  async (request, response) => {
+    try {
+      const errors = validationResult(request)
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array(), message: 'Wrong username or password' })
+      }
 
-  const userForToken = {
-    username: user.username,
-    id: user._id,
-  };
+      const { username, password } = request.body
+      const user = await User.findOne({ username });
+      if (!user) {
+        return response.status(400).json({ message: 'User not found' })
+      }
 
-  const token = jwt.sign(userForToken, process.env.SECRET);
+      const isMatch = await bcrypt.compare(password, user.passwordHash)
 
-  response
-    .status(200)
-    .send({ token, username: user.username, name: user.name });
-});
+      if (!isMatch) {
+        return res.status(401).json({ error: 'Wrong password, try again' })
+      }
+
+      const userForToken = {
+        username: user.username,
+        id: user._id,
+      };
+
+      const token = jwt.sign(userForToken, process.env.SECRET, { expiresIn: '1h' });
+
+      response
+        .status(200)
+        .send({ token, username: user.username, name: user.name });
+
+    } catch (e) {
+      response.status(500).json({ message: 'Something goes wrong, try again' })
+    }
+  });
 
 module.exports = loginRouter;
